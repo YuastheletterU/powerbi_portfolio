@@ -1,0 +1,62 @@
+table 'Rolling Calendar'
+	lineageTag: 8eff0679-9c6f-4df1-8ff0-11c5f92e0ab6
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 5f229124-58a2-4ac0-8344-a7b416db1c34
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year
+		dataType: string
+		lineageTag: 09e33c0e-d958-4b84-b17b-3a1dab64bb51
+		summarizeBy: none
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Start of Quarter'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 32a09712-64fb-45b6-a04f-6c09038cc2f9
+		summarizeBy: none
+		sourceColumn: Start of Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Start of Month'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 209d4786-263e-41ca-aeb2-da0334282514
+		summarizeBy: none
+		sourceColumn: Start of Month
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition 'Rolling Calendar' = m
+		mode: import
+		source =
+				let
+				    Source = #date(2023,1,1),
+				    Custom1 = List.Dates( Source, Number.From(DateTime.LocalNow()) - Number.From(Source), #duration(1,0,0,0)),
+				    #"Converted to Table" = Table.FromList(Custom1, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+				    #"Renamed Columns" = Table.RenameColumns(#"Converted to Table",{{"Column1", "Date"}}),
+				    #"Changed Type with Locale" = Table.TransformColumnTypes(#"Renamed Columns", {{"Date", type date}}, "en-US"),
+				    #"Inserted Year" = Table.AddColumn(#"Changed Type with Locale", "Year", each Date.Year([Date]), Int64.Type),
+				    #"Inserted Start of Quarter" = Table.AddColumn(#"Inserted Year", "Start of Quarter", each Date.StartOfQuarter([Date]), type date),
+				    #"Inserted Start of Month" = Table.AddColumn(#"Inserted Start of Quarter", "Start of Month", each Date.StartOfMonth([Date]), type date),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Inserted Start of Month",{{"Year", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
